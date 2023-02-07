@@ -1,13 +1,13 @@
 package com.example.teacherservice.service.implement;
 
 import com.example.teacherservice.dto.Constants;
+import com.example.teacherservice.dto.MessageCode;
+import com.example.teacherservice.dto.ServiceResponse;
 import com.example.teacherservice.dto.request.CreateTeacherRequest;
 import com.example.teacherservice.dto.response.TeacherResponse;
 import com.example.teacherservice.entity.Teacher;
 import com.example.teacherservice.repository.TeacherRepository;
 import com.example.teacherservice.service.TeacherService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,17 +18,11 @@ import java.util.Optional;
 
 @Service
 public class TeacherServiceImpl implements TeacherService {
-
-    private static final Logger logger = LoggerFactory.getLogger(TeacherServiceImpl.class);
-
     @Autowired
     private TeacherRepository teacherRepository;
 
-    public String create(CreateTeacherRequest createTeacherRequest) {
-        Optional<Teacher> findTeacher = teacherRepository.findByIdAndIsDeleted(createTeacherRequest.getId(), Constants.NOT_DELETED);
-        if (findTeacher.isPresent()) {
-            return ("Mã giáo viên đã tồn tại");
-        }        Teacher teacher = new Teacher();
+    public ServiceResponse<TeacherResponse> create(CreateTeacherRequest createTeacherRequest) {
+        Teacher teacher = new Teacher();
         teacher.setId(createTeacherRequest.getId());
         teacher.setName(createTeacherRequest.getName());
         teacher.setDob(createTeacherRequest.getDob());
@@ -39,12 +33,17 @@ public class TeacherServiceImpl implements TeacherService {
         teacher.setUpdatedDate(new Date());
         teacher.setIsDeleted(Constants.NOT_DELETED);
         teacherRepository.save(teacher);
-        return ("Them moi giao vien thanh cong");
+        TeacherResponse teacherResponse = new TeacherResponse(teacher);
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, teacherResponse);
     }
 
     @Override
-    public String update(CreateTeacherRequest createTeacherRequest) {
-        Teacher teacher = teacherRepository.findById(createTeacherRequest.getId()).get();
+    public ServiceResponse<TeacherResponse> update(CreateTeacherRequest createTeacherRequest) {
+        Optional<Teacher> findTeacher = teacherRepository.findById(createTeacherRequest.getId());
+        if (findTeacher.isEmpty()) {
+            return new ServiceResponse(MessageCode.TEACHER_NOT_EXISTED, MessageCode.TEACHER_NOT_EXISTED_MESSAGE, null);
+        }
+        Teacher teacher = findTeacher.get();
         teacher.setName(createTeacherRequest.getName());
         teacher.setDob(createTeacherRequest.getDob());
         teacher.setEmail(createTeacherRequest.getEmail());
@@ -53,32 +52,51 @@ public class TeacherServiceImpl implements TeacherService {
         teacher.setUpdatedDate(new Date());
         teacher.setIsDeleted(Constants.NOT_DELETED);
         teacherRepository.save(teacher);
-        return ("Sua thong tin giao vien thanh cong");
+        TeacherResponse teacherResponse = new TeacherResponse(teacher);
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, teacherResponse);    }
+
+    @Override
+    public ServiceResponse<TeacherResponse> detail(Long id) {
+        Optional<Teacher> findTeacher = teacherRepository.findById(id);
+        if (findTeacher.isEmpty()) {
+            return new ServiceResponse(MessageCode.TEACHER_NOT_EXISTED, MessageCode.TEACHER_NOT_EXISTED_MESSAGE, null);
+        }
+        Teacher teacher = findTeacher.get();
+        TeacherResponse teacherResponse = new TeacherResponse(teacher);
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, teacherResponse);
     }
 
     @Override
-    public TeacherResponse detail(Long id) {
-        Teacher teacher = teacherRepository.findById(id).get();
-        return new TeacherResponse(teacher);
-    }
-
-    @Override
-    public String delete(Long id) {
-        Teacher teacher = teacherRepository.findById(id).get();
+    public ServiceResponse<TeacherResponse> delete(Long id) {
+        Optional<Teacher> findTeacher = teacherRepository.findById(id);
+        if (findTeacher.isEmpty()) {
+            return new ServiceResponse(MessageCode.TEACHER_NOT_EXISTED, MessageCode.TEACHER_NOT_EXISTED_MESSAGE, null);
+        }
+        Teacher teacher = findTeacher.get();
         teacher.setUpdatedDate(new Date());
         teacher.setIsDeleted(Constants.IS_DELETED);
         teacherRepository.save(teacher);
-        ;
-        return ("Xoa giao vien thanh cong");
+        TeacherResponse teacherResponse = new TeacherResponse(teacher);
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, teacherResponse);
     }
 
     @Override
-    public List<TeacherResponse> listTeachers() {
+    public ServiceResponse<List<TeacherResponse>> listTeachers() {
         List<Teacher> listStudents = teacherRepository.findAllByIsDeleted(Constants.NOT_DELETED);
         List<TeacherResponse> response = new ArrayList<>();
         for (Teacher teacher : listStudents) {
             response.add(new TeacherResponse(teacher));
         }
-        return response;
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, response);
+    }
+
+    @Override
+    public ServiceResponse<List<TeacherResponse>> findListTeachers(List<Long> listId) {
+        List<Teacher> listStudents = teacherRepository.findAllByIdAndIsDeleted(listId, Constants.NOT_DELETED);
+        List<TeacherResponse> response = new ArrayList<>();
+        for (Teacher teacher : listStudents) {
+            response.add(new TeacherResponse(teacher));
+        }
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, response);
     }
 }

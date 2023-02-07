@@ -1,5 +1,6 @@
 package com.example.teacherservice.controller;
 
+import com.example.teacherservice.dto.ServiceResponse;
 import com.example.teacherservice.dto.request.CreateTeacherRequest;
 import com.example.teacherservice.dto.response.TeacherResponse;
 import com.example.teacherservice.service.TeacherService;
@@ -9,36 +10,40 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/teacher")
+@RequestMapping("api/v1/teachers")
 public class TeacherController {
 
     @Autowired
     TeacherService teacherService;
 
-    @PostMapping("/create")
-    public String createTeacher(@RequestBody CreateTeacherRequest createTeacherRequest) {
+    @PostMapping
+    public ServiceResponse<TeacherResponse> createTeacher(@RequestBody CreateTeacherRequest createTeacherRequest) {
         return teacherService.create(createTeacherRequest);
     }
 
-    @GetMapping("/all")
-    public List<TeacherResponse> all() {
+    @GetMapping
+    public ServiceResponse<List<TeacherResponse>> all() {
+
         return teacherService.listTeachers();
     }
 
-    @PutMapping("/update")
-    public String updateTeacher(@RequestBody CreateTeacherRequest createTeacherRequest) {
+    @PutMapping("")
+    public ServiceResponse<TeacherResponse> updateTeacher(@RequestBody CreateTeacherRequest createTeacherRequest) {
         return teacherService.update(createTeacherRequest);
     }
 
-    @GetMapping("/detail/{id}")
-    public TeacherResponse detailTeacher(@PathVariable Long id) {
-
+    @GetMapping("/{id}")
+    public ServiceResponse<TeacherResponse> detailTeacher(@PathVariable Long id) {
         return teacherService.detail(id);
     }
 
-    @PostMapping("/delete/{id}")
-    public String deleteTeacher(@PathVariable Long id) {
+    @GetMapping()
+    public ServiceResponse<List<TeacherResponse>> detailTeacher(@RequestBody List<Long> listId) {
+        return teacherService.findListTeachers(listId);
+    }
 
+    @DeleteMapping("/{id}")
+    public ServiceResponse<TeacherResponse> deleteTeacher(@PathVariable Long id) {
         return teacherService.delete(id);
     }
 }

@@ -6,8 +6,6 @@ import com.example.studentservice.repository.StudentRepository;
 import com.example.studentservice.dto.request.CreateStudentRequest;
 import com.example.studentservice.dto.response.StudentResponse;
 import com.example.studentservice.service.StudentService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,8 +16,6 @@ import java.util.Optional;
 
 @Service
 public class StudentServiceImpl implements StudentService {
-
-    private static final Logger logger = LoggerFactory.getLogger(StudentServiceImpl.class);
 
     @Autowired
     private StudentRepository studentRepository;
@@ -46,7 +42,11 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public String update(CreateStudentRequest createStudentRequest) {
-        Student student = studentRepository.findById(createStudentRequest.getId()).get();
+        Optional<Student> findStudent = studentRepository.findById(createStudentRequest.getId());
+        if (findStudent.isEmpty()) {
+            return ("Không tồn tại");
+        }
+        Student student = findStudent.get();
         student.setName(createStudentRequest.getName());
         student.setDob(createStudentRequest.getDob());
         student.setEmail(createStudentRequest.getEmail());
@@ -61,17 +61,24 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public StudentResponse detail(Long id) {
-        Student student = studentRepository.findById(id).get();
+        Optional<Student> findStudent = studentRepository.findById(id);
+        if (findStudent.isEmpty()) {
+            return null;
+        }
+        Student student = findStudent.get();
         return new StudentResponse(student);
     }
 
     @Override
     public String delete(Long id) {
-        Student student = studentRepository.findById(id).get();
+        Optional<Student> findStudent = studentRepository.findById(id);
+        if (findStudent.isEmpty()) {
+            return ("Không tồn tại");
+        }
+        Student student = findStudent.get();
         student.setUpdatedDate(new Date());
         student.setIsDeleted(Constants.IS_DELETED);
         studentRepository.save(student);
-        ;
         return ("Xoa hoc vien thanh cong");
     }
 

@@ -1,5 +1,6 @@
 package com.example.teacherservice.service;
 
+import com.example.teacherservice.dto.ServiceResponse;
 import com.example.teacherservice.dto.request.CreateTeacherRequest;
 import com.example.teacherservice.dto.response.TeacherResponse;
 
@@ -7,14 +8,16 @@ import java.util.List;
 
 public interface TeacherService {
 
-    String create(CreateTeacherRequest createTeacherRequest);
+    ServiceResponse<TeacherResponse> create(CreateTeacherRequest createTeacherRequest);
 
-    String update(CreateTeacherRequest updateTeacherRequest);
+    ServiceResponse<TeacherResponse> update(CreateTeacherRequest updateTeacherRequest);
 
-    TeacherResponse detail(Long id);
+    ServiceResponse<TeacherResponse> detail(Long id);
 
-    String delete(Long id);
+    ServiceResponse<TeacherResponse> delete(Long id);
 
-    List<TeacherResponse> listTeachers();
+    ServiceResponse<List<TeacherResponse>> listTeachers();
+
+    ServiceResponse<List<TeacherResponse>> findListTeachers(List<Long> listId);
 
 }
