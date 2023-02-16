@@ -1,5 +1,6 @@
 package com.example.courseservice.service;
 
+import com.example.courseservice.dto.ServiceResponse;
 import com.example.courseservice.dto.request.lesson.LessonCreateRequest;
 import com.example.courseservice.dto.request.lesson.LessonUpdateRequest;
 import com.example.courseservice.dto.request.lesson.RollCallStatus;
@@ -11,11 +12,11 @@ import com.example.courseservice.dto.response.lesson.RollCallResponse;
 import java.util.List;
 
 public interface LessonService {
-    String create(LessonCreateRequest lessonCreateRequest);
-    String update(LessonCreateRequest lessonCreateRequest);
-    LessonDetailResponse lessonDetail(Long id);
-    AllLessonResponse allLesson(Long courseId);
-    String delete(Long id);
-    String rollCall(Long lessonId, List<RollCallStatus> studentId);
-    RollCallResponse viewRollCall(Long lessonId);
+    ServiceResponse<LessonReponse> create(LessonCreateRequest lessonCreateRequest);
+    ServiceResponse<LessonReponse> update(LessonCreateRequest lessonCreateRequest);
+    ServiceResponse<LessonDetailResponse> lessonDetail(Long id);
+    ServiceResponse<AllLessonResponse> allLesson(Long courseId);
+    ServiceResponse<LessonReponse> delete(Long id);
+    ServiceResponse<Boolean> rollCall(Long lessonId, List<RollCallStatus> studentId);
+    ServiceResponse<RollCallResponse> viewRollCall(Long lessonId);
 }

@@ -32,14 +32,14 @@ public class TeacherServiceImpl implements TeacherService {
         teacher.setCreatedDate(new Date());
         teacher.setUpdatedDate(new Date());
         teacher.setIsDeleted(Constants.NOT_DELETED);
-        teacherRepository.save(teacher);
-        TeacherResponse teacherResponse = new TeacherResponse(teacher);
+        Teacher teacherSaved = teacherRepository.save(teacher);
+        TeacherResponse teacherResponse = new TeacherResponse(teacherSaved);
         return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, teacherResponse);
     }
 
     @Override
     public ServiceResponse<TeacherResponse> update(CreateTeacherRequest createTeacherRequest) {
-        Optional<Teacher> findTeacher = teacherRepository.findById(createTeacherRequest.getId());
+        Optional<Teacher> findTeacher = teacherRepository.findByIdAndIsDeleted(createTeacherRequest.getId(), Constants.NOT_DELETED);
         if (findTeacher.isEmpty()) {
             return new ServiceResponse(MessageCode.TEACHER_NOT_EXISTED, MessageCode.TEACHER_NOT_EXISTED_MESSAGE, null);
         }
@@ -57,7 +57,7 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public ServiceResponse<TeacherResponse> detail(Long id) {
-        Optional<Teacher> findTeacher = teacherRepository.findById(id);
+        Optional<Teacher> findTeacher = teacherRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED);
         if (findTeacher.isEmpty()) {
             return new ServiceResponse(MessageCode.TEACHER_NOT_EXISTED, MessageCode.TEACHER_NOT_EXISTED_MESSAGE, null);
         }
@@ -68,7 +68,7 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public ServiceResponse<TeacherResponse> delete(Long id) {
-        Optional<Teacher> findTeacher = teacherRepository.findById(id);
+        Optional<Teacher> findTeacher = teacherRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED);
         if (findTeacher.isEmpty()) {
             return new ServiceResponse(MessageCode.TEACHER_NOT_EXISTED, MessageCode.TEACHER_NOT_EXISTED_MESSAGE, null);
         }
@@ -82,9 +82,9 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public ServiceResponse<List<TeacherResponse>> listTeachers() {
-        List<Teacher> listStudents = teacherRepository.findAllByIsDeleted(Constants.NOT_DELETED);
+        List<Teacher> listTeachers = teacherRepository.findAllByIsDeleted(Constants.NOT_DELETED);
         List<TeacherResponse> response = new ArrayList<>();
-        for (Teacher teacher : listStudents) {
+        for (Teacher teacher : listTeachers) {
             response.add(new TeacherResponse(teacher));
         }
         return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, response);
@@ -92,9 +92,9 @@ public class TeacherServiceImpl implements TeacherService {
 
     @Override
     public ServiceResponse<List<TeacherResponse>> findListTeachers(List<Long> listId) {
-        List<Teacher> listStudents = teacherRepository.findAllByIdAndIsDeleted(listId, Constants.NOT_DELETED);
+        List<Teacher> listTeachers = teacherRepository.findByIdInAndIsDeleted(listId, Constants.NOT_DELETED);
         List<TeacherResponse> response = new ArrayList<>();
-        for (Teacher teacher : listStudents) {
+        for (Teacher teacher : listTeachers) {
             response.add(new TeacherResponse(teacher));
         }
         return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, response);

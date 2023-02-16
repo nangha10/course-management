@@ -17,8 +17,6 @@ public class TeacherResponse {
     private Date dob;
     private String phone;
     private String experience;
-    private Date createdDate;
-    private Date updatedDate;
 
     public TeacherResponse(Teacher teacher) {
         this.id = teacher.getId();
@@ -27,7 +25,5 @@ public class TeacherResponse {
         this.dob = teacher.getDob();
         this.phone = teacher.getPhone();
         this.experience = teacher.getExperience();
-        this.createdDate = teacher.getCreatedDate();
-        this.updatedDate = teacher.getUpdatedDate();
     }
 }

@@ -37,8 +37,8 @@ public class TeacherController {
         return teacherService.detail(id);
     }
 
-    @GetMapping()
-    public ServiceResponse<List<TeacherResponse>> detailTeacher(@RequestBody List<Long> listId) {
+    @PostMapping("/")
+    public ServiceResponse<List<TeacherResponse>> listTeachers(@RequestBody List<Long> listId) {
         return teacherService.findListTeachers(listId);
     }
 

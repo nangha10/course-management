@@ -17,6 +17,4 @@ public class StudentReponse {
     private String phone;
     private int grade;
     private String school;
-    private Date createdDate;
-    private Date updatedDate;
 }

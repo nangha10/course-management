@@ -1,6 +1,8 @@
 package com.example.studentservice.service.implement;
 
 import com.example.studentservice.dto.Constants;
+import com.example.studentservice.dto.MessageCode;
+import com.example.studentservice.dto.ServiceResponse;
 import com.example.studentservice.entity.Student;
 import com.example.studentservice.repository.StudentRepository;
 import com.example.studentservice.dto.request.CreateStudentRequest;
@@ -20,13 +22,9 @@ public class StudentServiceImpl implements StudentService {
     @Autowired
     private StudentRepository studentRepository;
 
-    public String create(CreateStudentRequest createStudentRequest) {
-        Optional<Student> findStudent = studentRepository.findByIdAndIsDeleted(createStudentRequest.getId(), Constants.NOT_DELETED);
-        if (findStudent.isPresent()) {
-            return ("Mã học sinh đã tồn tại");
-        }
+    public ServiceResponse<StudentResponse> create(CreateStudentRequest createStudentRequest) {
+
         Student student = new Student();
-        student.setId(createStudentRequest.getId());
         student.setName(createStudentRequest.getName());
         student.setDob(createStudentRequest.getDob());
         student.setEmail(createStudentRequest.getEmail());
@@ -36,15 +34,17 @@ public class StudentServiceImpl implements StudentService {
         student.setCreatedDate(new Date());
         student.setUpdatedDate(new Date());
         student.setIsDeleted(Constants.NOT_DELETED);
-        studentRepository.save(student);
-        return ("Them moi hoc vien thanh cong");
+        Student studentSaved = studentRepository.save(student);
+        StudentResponse studentResponse = new StudentResponse(studentSaved);
+
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, studentResponse);
     }
 
     @Override
-    public String update(CreateStudentRequest createStudentRequest) {
-        Optional<Student> findStudent = studentRepository.findById(createStudentRequest.getId());
+    public ServiceResponse<StudentResponse> update(CreateStudentRequest createStudentRequest) {
+        Optional<Student> findStudent = studentRepository.findByIdAndIsDeleted(createStudentRequest.getId(), Constants.NOT_DELETED);
         if (findStudent.isEmpty()) {
-            return ("Không tồn tại");
+            return new ServiceResponse(MessageCode.STUDENT_NOT_EXISTED, MessageCode.STUDENT_NOT_EXISTED_MESSAGE, null);
         }
         Student student = findStudent.get();
         student.setName(createStudentRequest.getName());
@@ -56,39 +56,53 @@ public class StudentServiceImpl implements StudentService {
         student.setUpdatedDate(new Date());
         student.setIsDeleted(Constants.NOT_DELETED);
         studentRepository.save(student);
-        return ("Sua thong tin hoc vien thanh cong");
+
+        Student studentSaved = studentRepository.save(student);
+        StudentResponse studentResponse = new StudentResponse(studentSaved);
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, studentResponse);
     }
 
     @Override
-    public StudentResponse detail(Long id) {
-        Optional<Student> findStudent = studentRepository.findById(id);
+    public ServiceResponse<StudentResponse> detail(Long id) {
+        Optional<Student> findStudent = studentRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED);
         if (findStudent.isEmpty()) {
-            return null;
+            return new ServiceResponse(MessageCode.STUDENT_NOT_EXISTED, MessageCode.STUDENT_NOT_EXISTED_MESSAGE, null);
         }
         Student student = findStudent.get();
-        return new StudentResponse(student);
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, new StudentResponse(student));
+
     }
 
     @Override
-    public String delete(Long id) {
-        Optional<Student> findStudent = studentRepository.findById(id);
+    public ServiceResponse<StudentResponse> delete(Long id) {
+        Optional<Student> findStudent = studentRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED);
         if (findStudent.isEmpty()) {
-            return ("Không tồn tại");
+            return new ServiceResponse(MessageCode.STUDENT_NOT_EXISTED, MessageCode.STUDENT_NOT_EXISTED_MESSAGE, null);
         }
         Student student = findStudent.get();
         student.setUpdatedDate(new Date());
         student.setIsDeleted(Constants.IS_DELETED);
         studentRepository.save(student);
-        return ("Xoa hoc vien thanh cong");
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, new StudentResponse(student));
     }
 
     @Override
-    public List<StudentResponse> listStudents() {
+    public ServiceResponse<List<StudentResponse>> listStudents() {
         List<Student> listStudents = studentRepository.findAllByIsDeleted(Constants.NOT_DELETED);
         List<StudentResponse> response = new ArrayList<>();
         for (Student student : listStudents) {
             response.add(new StudentResponse(student));
         }
-        return response;
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, response);
+    }
+
+    @Override
+    public ServiceResponse<List<StudentResponse>> findListStudents(List<Long> listId) {
+        List<Student> listStudents = studentRepository.findByIdInAndIsDeleted(listId, Constants.NOT_DELETED);
+        List<StudentResponse> response = new ArrayList<>();
+        for (Student student : listStudents) {
+            response.add(new StudentResponse(student));
+        }
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, response);
     }
 }

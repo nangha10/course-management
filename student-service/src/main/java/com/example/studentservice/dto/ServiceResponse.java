@@ -1,4 +1,4 @@
-package com.example.courseservice.dto;
+package com.example.studentservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

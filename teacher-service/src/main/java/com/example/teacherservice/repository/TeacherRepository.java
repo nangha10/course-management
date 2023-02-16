@@ -11,6 +11,6 @@ import java.util.Optional;
 @Repository
 public interface TeacherRepository extends JpaRepository<Teacher, Long> {
     List<Teacher> findAllByIsDeleted(int isDeleted);
-    List<Teacher> findAllByIdAndIsDeleted(List<Long> listId, int isDeleted);
+    List<Teacher> findByIdInAndIsDeleted(List<Long> listId, int isDeleted);
     Optional<Teacher> findByIdAndIsDeleted(Long id, int isDeleted);
 }

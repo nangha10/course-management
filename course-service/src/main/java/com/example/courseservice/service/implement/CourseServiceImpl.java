@@ -1,11 +1,12 @@
 package com.example.courseservice.service.implement;
 
 import com.example.courseservice.dto.Constants;
+import com.example.courseservice.dto.MessageCode;
+import com.example.courseservice.dto.ServiceResponse;
 import com.example.courseservice.dto.request.course.CourseCreateRequest;
 import com.example.courseservice.dto.request.course.TuitionStatus;
 import com.example.courseservice.dto.response.course.*;
 import com.example.courseservice.entity.Course;
-import com.example.courseservice.entity.Lesson;
 import com.example.courseservice.entity.StudentList;
 import com.example.courseservice.entity.TeacherCourse;
 import com.example.courseservice.feignclients.StudentFeignClient;
@@ -15,8 +16,6 @@ import com.example.courseservice.repository.StudentListRepository;
 import com.example.courseservice.repository.TeacherCourseRepository;
 import com.example.courseservice.service.CommonService;
 import com.example.courseservice.service.CourseService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +23,6 @@ import java.util.*;
 
 @Service
 public class CourseServiceImpl implements CourseService {
-    private static final Logger logger = LoggerFactory.getLogger(CourseServiceImpl.class);
 
     @Autowired
     private CourseRepository courseRepository;
@@ -45,45 +43,53 @@ public class CourseServiceImpl implements CourseService {
     CommonService commonService;
 
     @Override
-    public String create(CourseCreateRequest courseCreateRequest) {
-        Optional<Course> findCourse = courseRepository.findByIdAndIsDeleted(courseCreateRequest.getId(), Constants.NOT_DELETED);
-        if (findCourse.isPresent()) {
-            return ("Mã lớp học đã tồn tại");
-        }
-        Course course = new Course();
-        course.setId(courseCreateRequest.getId());
-        course.setName(courseCreateRequest.getName());
-        course.setStartDate(courseCreateRequest.getStartDate());
-        course.setEndDate(courseCreateRequest.getEndDate());
-        course.setTuition(courseCreateRequest.getTuition());
-        course.setCreatedDate(new Date());
-        course.setUpdatedDate(new Date());
-        course.setIsDeleted(Constants.NOT_DELETED);
+    public ServiceResponse<CourseReponse> create(CourseCreateRequest courseCreateRequest) {
+        try {
+            Course course = new Course();
+            course.setName(courseCreateRequest.getName());
+            course.setStartDate(courseCreateRequest.getStartDate());
+            course.setEndDate(courseCreateRequest.getEndDate());
+            course.setTuition(courseCreateRequest.getTuition());
+            course.setCreatedDate(new Date());
+            course.setUpdatedDate(new Date());
+            course.setIsDeleted(Constants.NOT_DELETED);
 
-        List<TeacherCourse> listTeachers = new ArrayList<>();
-        for ( Long teacherId:courseCreateRequest.getListTeacherId()) {
-            TeacherCourse teacherCourse = new TeacherCourse();
-            teacherCourse.setCourseId(course.getId());
-            teacherCourse.setTeacherId(teacherId);
-            teacherCourse.setCreatedDate(new Date());
-            teacherCourse.setUpdatedDate(new Date());
-            teacherCourse.setIsDeleted(Constants.NOT_DELETED);
-            listTeachers.add(teacherCourse);
+            List<TeacherCourse> listTeachers = new ArrayList<>();
+            for (Long teacherId:courseCreateRequest.getListTeacherId()) {
+                TeacherCourse teacherCourse = new TeacherCourse();
+                teacherCourse.setCourseId(course.getId());
+                teacherCourse.setTeacherId(teacherId);
+                teacherCourse.setCreatedDate(new Date());
+                teacherCourse.setUpdatedDate(new Date());
+                teacherCourse.setIsDeleted(Constants.NOT_DELETED);
+                listTeachers.add(teacherCourse);
+            }
+            Course courseSaved = courseRepository.save(course);
+            teacherCourseRepository.saveAll(listTeachers);
+
+            CourseReponse courseReponse = new CourseReponse(courseSaved);
+
+            return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, courseReponse);
+        } catch (Exception ex) {
+            return new ServiceResponse(MessageCode.FAILED, ex.getMessage(), null);
+
         }
-        courseRepository.save(course);
-        teacherCourseRepository.saveAll(listTeachers);
-        return ("Them moi khoa hoc thanh cong");
+
     }
 
     @Override
-    public String update(CourseCreateRequest courseCreateRequest) {
-        Course courseUpdate = courseRepository.findById(courseCreateRequest.getId()).get();
+    public ServiceResponse<CourseReponse> update(Long id, CourseCreateRequest courseCreateRequest) {
+        Optional<Course> findCourse = courseRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED);
+        if (findCourse.isEmpty()) {
+            return new ServiceResponse(MessageCode.COURSE_NOT_EXISTED, MessageCode.COURSE_NOT_EXISTED_MESSAGE, null);
+        }
+        Course courseUpdate = findCourse.get();
         courseUpdate.setName(courseCreateRequest.getName());
         courseUpdate.setStartDate(courseCreateRequest.getStartDate());
         courseUpdate.setEndDate(courseCreateRequest.getEndDate());
         courseUpdate.setUpdatedDate(new Date());
         List<TeacherCourse> listTeachers = new ArrayList<>();
-        List<TeacherCourse> listTeachersNotUpdate = teacherCourseRepository.findByCourseIdAndIsDeleted(courseCreateRequest.getId(), Constants.NOT_DELETED);
+        List<TeacherCourse> listTeachersNotUpdate = teacherCourseRepository.findByCourseIdAndIsDeleted(id, Constants.NOT_DELETED);
         for (TeacherCourse teacher: listTeachersNotUpdate) {
             if(!Arrays.asList(listTeachersNotUpdate).contains(teacher)) {
                 teacher.setIsDeleted(Constants.IS_DELETED);
@@ -91,84 +97,105 @@ public class CourseServiceImpl implements CourseService {
                 listTeachers.add(teacher);
             }
         }
-        for ( Long teacherId:courseCreateRequest.getListTeacherId()) {
-            Optional<TeacherCourse> teacherCourse = teacherCourseRepository.findByTeacherIdAndCourseId(teacherId, courseUpdate.getId());
-            if(teacherCourse.isEmpty()) {
-                teacherCourse.get().setCourseId(courseUpdate.getId());
-                teacherCourse.get().setTeacherId(teacherId);
-                teacherCourse.get().setCreatedDate(new Date());
-                teacherCourse.get().setUpdatedDate(new Date());
-                teacherCourse.get().setIsDeleted(Constants.NOT_DELETED);
-                listTeachers.add(teacherCourse.get());
-            } else
-                if(teacherCourse.get().getIsDeleted() == Constants.IS_DELETED) {
-                    teacherCourse.get().setIsDeleted(Constants.NOT_DELETED);
-                    teacherCourse.get().setUpdatedDate(new Date());
-                    listTeachers.add(teacherCourse.get());
+        for (Long teacherId: courseCreateRequest.getListTeacherId()) {
+            Optional<TeacherCourse> findTeacher = teacherCourseRepository.findByTeacherIdAndCourseId(teacherId, courseUpdate.getId());
+            TeacherCourse teacher = new TeacherCourse();
+            if (findTeacher.isEmpty()) {
+                teacher.setCourseId(courseUpdate.getId());
+                teacher.setTeacherId(teacherId);
+                teacher.setCreatedDate(new Date());
+                teacher.setUpdatedDate(new Date());
+                teacher.setIsDeleted(Constants.NOT_DELETED);
+                listTeachers.add(teacher);
+            } else {
+                teacher = findTeacher.get();
+                if (teacher.getIsDeleted() == Constants.IS_DELETED) {
+                    teacher.setIsDeleted(Constants.NOT_DELETED);
+                    teacher.setUpdatedDate(new Date());
                 }
+                listTeachers.add(teacher);
+            }
         }
-        courseRepository.save(courseUpdate);
+        Course courseUpdated = courseRepository.save(courseUpdate);
         teacherCourseRepository.saveAll(listTeachers);
-        return ("Chinh sua khoa hoc thanh cong");
+
+        CourseReponse courseReponse = new CourseReponse(courseUpdated);
+
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, courseReponse);
     }
 
     @Override
-    public CourseDetailResponse courseDetail(Long id) {
-        Course courseInf = courseRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED).get();
+    public ServiceResponse<CourseDetailResponse> courseDetail(Long id) {
+        Optional<Course> findCourse = courseRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED);
+        if (findCourse.isEmpty()) {
+            return new ServiceResponse(MessageCode.COURSE_NOT_EXISTED, MessageCode.COURSE_NOT_EXISTED_MESSAGE, null);
+        }
+        Course courseInf = findCourse.get();
         CourseDetailResponse courseDetailResponse = new CourseDetailResponse();
         courseDetailResponse.setId(courseInf.getId());
         courseDetailResponse.setName(courseInf.getName());
         courseDetailResponse.setStartDate(courseInf.getStartDate());
         courseDetailResponse.setEndDate(courseInf.getEndDate());
         courseDetailResponse.setTuition(courseInf.getTuition());
+
         List<TeacherInf> listTeachersResponse = new ArrayList<>();
         List<TeacherCourse> listTeachers = teacherCourseRepository.findByCourseIdAndIsDeleted(courseDetailResponse.getId(), Constants.NOT_DELETED);
+        List<Long> listTeachersId = new ArrayList<>();
         for (TeacherCourse teacher: listTeachers) {
-            TeacherResponse teacherResponse = commonService.detailTeacher(teacher.getTeacherId());
+            listTeachersId.add(teacher.getTeacherId());
+        }
+        List<TeacherResponse> listTeacherResponse = commonService.listTeachers(listTeachersId);
+        for (TeacherResponse teacherResponse: listTeacherResponse) {
             TeacherInf teacherInf = new TeacherInf(teacherResponse.getId(),teacherResponse.getName());
             listTeachersResponse.add(teacherInf);
         }
+
         courseDetailResponse.setListTeachers(listTeachersResponse);
-        return courseDetailResponse;
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, courseDetailResponse);
+
     }
 
     @Override
-    public List<CourseReponse> allCourse() {
-        List<CourseReponse> courseReponseList = new ArrayList<>();
+    public  ServiceResponse<List<CourseReponse>> allCourse() {
+        List<CourseReponse> courseResponseList = new ArrayList<>();
         List<Course> listCourses = courseRepository.findAllByIsDeleted(Constants.NOT_DELETED);
         for (Course course: listCourses){
-            CourseReponse courseReponse = new CourseReponse();
-            courseReponse.setId(course.getId());
-            courseReponse.setName(course.getName());
-            courseReponse.setStartDate(course.getStartDate());
-            courseReponse.setEndDate(course.getEndDate());
-            courseReponseList.add(courseReponse);
+            CourseReponse courseReponse = new CourseReponse(course);
+            courseResponseList.add(courseReponse);
         }
-        return courseReponseList;
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, courseResponseList);
     }
 
     @Override
-    public List<StudentInf> listStudents(Long courseId) {
-        List<StudentList> studentList= studentListRepository.findByCourseIdAndIsDeleted(courseId, Constants.NOT_DELETED);
+    public  ServiceResponse<List<StudentInf>> listStudents(Long courseId) {
+        List<StudentList> studentList = studentListRepository.findByCourseIdAndIsDeleted(courseId, Constants.NOT_DELETED);
         List<StudentInf> studentInfList = new ArrayList<>();
+        List<Long> studentsId = new ArrayList<>();
         for (StudentList student: studentList) {
-            StudentReponse studentResponse = commonService.detailStudent(student.getStudentId());
+            studentsId.add(student.getStudentId());
+        }
+        List<StudentReponse> studentReponseList = commonService.listStudents(studentsId);
+        for (StudentReponse student: studentReponseList) {
             StudentInf studentInf = new StudentInf();
-            studentInf.setId(student.getStudentId());
-            studentInf.setName(studentResponse.getName());
-            studentInf.setEmail(studentResponse.getEmail());
-            studentInf.setDob(studentResponse.getDob());
-            studentInf.setTuitionStatus(student.getTuitionStatus());
+            studentInf.setId(student.getId());
+            studentInf.setName(student.getName());
+            studentInf.setEmail(student.getEmail());
+            studentInf.setDob(student.getDob());
             studentInfList.add(studentInf);
         }
-        return studentInfList;
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, studentInfList);
+
     }
 
     @Override
-    public String delete(Long id) {
-        Course courseInf = courseRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED).get();
+    public ServiceResponse<CourseReponse> delete(Long id) {
+        Optional<Course> findCourse = courseRepository.findByIdAndIsDeleted(id, Constants.NOT_DELETED);
+        if (findCourse.isEmpty()) {
+            return new ServiceResponse(MessageCode.COURSE_NOT_EXISTED, MessageCode.COURSE_NOT_EXISTED_MESSAGE, null);
+        }
+        Course courseInf = findCourse.get();
         courseInf.setIsDeleted(Constants.IS_DELETED);
-        List<StudentList> studentList= studentListRepository.findByCourseIdAndIsDeleted(id, Constants.NOT_DELETED);
+        List<StudentList> studentList = studentListRepository.findByCourseIdAndIsDeleted(id, Constants.NOT_DELETED);
         for (StudentList student: studentList) {
             student.setIsDeleted(Constants.IS_DELETED);
         }
@@ -178,11 +205,13 @@ public class CourseServiceImpl implements CourseService {
             teacher.setIsDeleted(Constants.IS_DELETED);
         }
         teacherCourseRepository.saveAll(listTeachers);
-        return ("Xoa khoa hoc thanh cong");
+
+        CourseReponse courseReponse = new CourseReponse(courseInf);
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, courseReponse);
     }
 
     @Override
-    public String addStudentsToCourse(Long courseId, List<Long> studentsId) {
+    public ServiceResponse<Boolean> addStudentsToCourse(Long courseId, List<Long> studentsId) {
         List<StudentList> listStudents = new ArrayList<>();
         for (Long studentId: studentsId) {
             Optional<StudentList> student = studentListRepository.findByCourseIdAndStudentIdAndIsDeleted(courseId, studentId, Constants.IS_DELETED);
@@ -202,39 +231,41 @@ public class CourseServiceImpl implements CourseService {
             }
         }
         studentListRepository.saveAll(listStudents);
-        return ("Them hoc vien thanh cong");
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, true);
     }
 
     @Override
-    public String removeStudentsFromCourse(Long courseId, List<Long> studentsId) {
+    public ServiceResponse<Boolean> removeStudentsFromCourse(Long courseId, List<Long> studentsId) {
         List<StudentList> listStudents = new ArrayList<>();
         for (Long studentId: studentsId) {
-            StudentList studentList = studentListRepository.findByCourseIdAndStudentIdAndIsDeleted(courseId, studentId, Constants.NOT_DELETED).get();
+            Optional<StudentList> findStudentList = studentListRepository.findByCourseIdAndStudentIdAndIsDeleted(courseId, studentId, Constants.NOT_DELETED);
+            if (findStudentList.isEmpty()) {
+                return new ServiceResponse(MessageCode.STUDENT_NOT_EXIST, MessageCode.STUDENT_NOT_EXIST_MESSAGE, false);
+            }
+            StudentList studentList = findStudentList.get();
             studentList.setUpdatedDate(new Date());
             studentList.setIsDeleted(Constants.IS_DELETED);
             listStudents.add(studentList);
         }
         studentListRepository.saveAll(listStudents);
-        return ("Xoa hoc vien thanh cong");
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, true);
     }
 
     @Override
-    public String updateTuitionStatus(Long courseId, List<TuitionStatus> listTuitionStatus) {
+    public ServiceResponse<Boolean> updateTuitionStatus(Long courseId, List<TuitionStatus> listTuitionStatus) {
 
         List<StudentList> listStudents = new ArrayList<>();
         for (TuitionStatus tuitionStatus: listTuitionStatus) {
-            StudentList studentList = studentListRepository.findByCourseIdAndStudentIdAndIsDeleted(courseId, tuitionStatus.getIdStudent(), Constants.NOT_DELETED).get();
+            Optional<StudentList> findStudentList = studentListRepository.findByCourseIdAndStudentIdAndIsDeleted(courseId, tuitionStatus.getIdStudent(), Constants.NOT_DELETED);
+            if (findStudentList.isEmpty()) {
+                return new ServiceResponse(MessageCode.STUDENT_NOT_EXIST, MessageCode.STUDENT_NOT_EXIST_MESSAGE, false);
+            }
+            StudentList studentList = findStudentList.get();
             studentList.setUpdatedDate(new Date());
             studentList.setTuitionStatus(tuitionStatus.getTuitionStatus());
             listStudents.add(studentList);
         }
         studentListRepository.saveAll(listStudents);
-        return ("Xoa hoc vien thanh cong");
+        return new ServiceResponse(MessageCode.SUCCESSFUL, MessageCode.SUCCESSFUL_MESSAGE, true);
     }
-    public TeacherResponse detailTeacher(Long id) {
-        TeacherResponse teacherResponse = teacherFeignClient.detailTeacher(id);
-        return teacherResponse;
-    }
-
-
 }

@@ -18,8 +18,6 @@ public class StudentResponse {
     private String phone;
     private int grade;
     private String school;
-    private Date createdDate;
-    private Date updatedDate;
 
     public StudentResponse(Student student) {
         this.id = student.getId();
@@ -29,7 +27,5 @@ public class StudentResponse {
         this.phone = student.getPhone();
         this.grade = student.getGrade();
         this.school = student.getSchool();
-        this.createdDate = student.getCreatedDate();
-        this.updatedDate = student.getUpdatedDate();
     }
 }
